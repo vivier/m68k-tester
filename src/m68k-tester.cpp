@@ -559,6 +559,7 @@ static int get_cpu_state_binary(uint32 value, FILE *fp, m68k_cpu_state_t *csp)
 
 static int read_testcase_binary(FILE *fp, m68k_testcase_t *tp)
 {
+	char name[256];
 	if (tp == NULL)
 		return PARSER_ERROR;
 
@@ -604,7 +605,6 @@ static int read_testcase_binary(FILE *fp, m68k_testcase_t *tp)
 				inst->words[2*i + 1] = value;
 			}
 			len = INS_name_length::extract(value);
-			char *name = (char *)alloca(len + 1);
 			memset(name, 0, len + 1);
 			error |= fread(name, len, 1, fp) != 1;
 			error |= strncpy(inst->name, name, sizeof(inst->name)) == NULL;
