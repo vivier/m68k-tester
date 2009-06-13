@@ -1,0 +1,7 @@
+- Support more tests
+  * Floating-point instructions
+  * 68020+ (bit-field, long mul/div, etc.) instructions
+- Support more CPU emulation engines
+  * Musashi
+  * Generator (original core, Lisa core)
+  * Apple DR emulator in ROM (requires up-to-date SheepShaver parts)

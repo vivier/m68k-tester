@@ -1,0 +1,33 @@
+--- target-m68k/cpu.h	2007-07-02 22:59:27.000000000 +0200
++++ target-m68k/cpu.h	2007-07-02 23:30:51.000000000 +0200
+@@ -52,6 +52,7 @@
+ 
+ #define EXCP_RTE            0x100
+ #define EXCP_HALT_INSN      0x101
++#define EXCP_EXEC_RETURN    0x20000
+ 
+ typedef struct CPUM68KState {
+     uint32_t dregs[8];
+--- target-m68k/translate.c	2007-07-02 22:59:27.000000000 +0200
++++ target-m68k/translate.c	2007-07-02 23:31:06.000000000 +0200
+@@ -3522,6 +3522,11 @@ DISAS_INSN(to_mext)
+         gen_op_set_mac_extu(val, acc);
+ }
+ 
++DISAS_INSN(emulop_exec_return)
++{
++    gen_exception(s, s->pc - 2, EXCP_EXEC_RETURN);
++}
++
+ static disas_proc opcode_table[65536];
+ 
+ static void
+@@ -3781,6 +3786,8 @@ void register_m68k_insns (CPUM68KState *
+     INSN(cpushl,    f428, ff38, CF_ISA_A);
+     INSN(wddata,    fb00, ff00, CF_ISA_A);
+     INSN(wdebug,    fbc0, ffc0, CF_ISA_A);
++
++    INSN(emulop_exec_return, 7100, ffff, M68000);
+ #undef INSN
+ }
+ 
