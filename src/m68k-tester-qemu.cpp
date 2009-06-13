@@ -18,6 +18,8 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <malloc.h>
+
 #include "sysdeps.h"
 #include "vm_alloc.h"
 #include "m68k-tester.h"
@@ -58,11 +60,17 @@ typedef struct float_status {
 #endif
 } float_status;
 
+#if defined(__x86_64__)
+#define TARGET_PHYS_ADDR_BITS 64
+#elif defined(__i386__)
+#define TARGET_PHYS_ADDR_BITS 32
+#endif
 
 #if EMU_QEMU
 extern "C" {
-#include "target-m68k/cpu.h"
-extern void tb_flush();
+#define NEED_CPU_H
+#include "cpu.h"
+extern void tb_flush(CPUM68KState*);
 extern void cpu_dump_state(CPUM68KState *env, FILE *f,
 						   int (*cpu_fprintf)(FILE *f, const char *fmt, ...),
 						   int flags);
@@ -85,16 +93,11 @@ static void m68k_memory_exit(void)
 
 static CPUM68KState *m68k_cpu_init(void)
 {
-	CPUM68KState *cpu = cpu_m68k_init();
-	if (cpu == NULL)
-		return NULL;
-
 	char cpu_str[] = "m68000";
 	cpu_str[4] = CPUType + '0';
-	if (cpu_m68k_set_model(cpu, cpu_str) != 0) {
-		cpu_m68k_close(cpu);
+	CPUM68KState *cpu = cpu_m68k_init(cpu_str);
+	if (cpu == NULL)
 		return NULL;
-	}
 
 	return cpu;
 }
@@ -127,6 +130,7 @@ static void m68k_execute(CPUM68KState *cpu)
 m68k_cpu::m68k_cpu()
 {
 	m68k_memory_init();
+	cpu_exec_init_all(0);
 	opaque = m68k_cpu_init();
 	assert(opaque != NULL);
 }
@@ -183,7 +187,7 @@ void m68k_cpu::reset(void)
 
 void m68k_cpu::reset_jit(void)
 {
-	tb_flush();
+	tb_flush(M68K_STATE);
 }
 
 void m68k_cpu::execute(uint32 pc)
@@ -191,4 +195,78 @@ void m68k_cpu::execute(uint32 pc)
 	D(bug("* execute code at %08x\n", pc));
 	set_pc(pc);
 	m68k_execute(M68K_STATE);
+}
+
+extern "C" {
+
+int singlestep;
+unsigned long last_brk;
+
+void pstrcpy(char *buf, int buf_size, const char *str)
+{
+    int c;
+    char *q = buf;
+
+    if (buf_size <= 0)
+        return;
+
+    for(;;) {
+        c = *str++;
+        if (c == 0 || q >= buf + buf_size - 1)
+            break;
+        *q++ = c;
+    }
+    *q = '\0';
+}
+
+void qemu_free(void *ptr)
+{
+    free(ptr);
+}
+
+void *qemu_malloc(size_t size)
+{
+    return malloc(size);
+}
+
+void *qemu_mallocz(size_t size)
+{
+    void *ptr;
+    ptr = qemu_malloc(size);
+    if (!ptr)
+        return NULL;
+    memset(ptr, 0, size);
+    return ptr;
+}
+
+void mmap_lock(void )
+{
+    return;
+}
+
+void mmap_unlock(void)
+{
+    return;
+}
+
+void cpu_list_lock(void)
+{
+}
+
+void *qemu_vmalloc(size_t size)
+{
+    return memalign(4096, size);
+}
+
+void cpu_list_unlock(void)
+{
+}
+
+typedef int (*gdb_reg_cb)(CPUState *env, uint8_t *buf, int reg);
+
+void gdb_register_coprocessor(CPUState * env,
+                             gdb_reg_cb get_reg, gdb_reg_cb set_reg,
+                             int num_regs, const char *xml, int g_pos)
+{
+}
 }
