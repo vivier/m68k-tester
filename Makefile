@@ -126,7 +126,7 @@ endif
 # QEMU
 ifeq ($(EMULATOR), QEMU)
 GLUE_SRCS = m68k-tester-qemu.cpp
-GLUE_INCS = softfloat.h cpu-all.h
+GLUE_INCS = softfloat.h qemu-types.h
 CPPFLAGS += -I$(EMULATOR_PATH)/target-m68k
 CPPFLAGS += -DEMU_QEMU
 CPPFLAGS += -DVM_DEFAULT_ACCESSORS
