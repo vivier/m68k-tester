@@ -50,7 +50,7 @@ USE_JIT = no
 #EMULATOR = Aranym
 #EMULATOR = UAE
 #EMULATOR = E-UAE
-#EMULATOR = QEMU
+EMULATOR = QEMU
 ifeq ($(EMULATOR),)
 EMULATOR = dummy
 endif
@@ -134,7 +134,7 @@ endif
 
 # Memory addressing mode
 # --enable-addressing=real
-#MEMORY = real
+MEMORY = real
 # --enable-addressing=direct
 #MEMORY = direct
 # --enable-addressing=banks (default)
@@ -166,10 +166,16 @@ CPPFLAGS += -DENABLE_MON
 LIBS += -lreadline
 endif
 
+ifeq ($(EMULATOR), QEMU)
+GLUE_LIBS	= libqemu.a
+GEN_LIBS	= $(GLUE_LIBS:%.a=$(EMULATOR_PATH)/m68k-linux-user/%.a)
+GEN_INCS	= $(GLUE_INCS:%.h=$(OBJ_DIR)/%.h)
+else
 ifneq ($(EMULATOR), dummy)
 GLUE_LIBS	= libemu68k.a
 GEN_LIBS	= $(GLUE_LIBS:%.a=$(SRC_PATH)/libs/%.a)
 GEN_INCS	= $(GLUE_INCS:%.h=$(OBJ_DIR)/%.h)
+endif
 endif
 
 RAW_SRCS	= vm_alloc.cpp m68k-tester.cpp $(GLUE_SRCS)
