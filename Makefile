@@ -51,6 +51,7 @@ USE_JIT = no
 #EMULATOR = UAE
 #EMULATOR = E-UAE
 EMULATOR = QEMU
+EMULATOR_PATH = ../qemu-m68k
 ifeq ($(EMULATOR),)
 EMULATOR = dummy
 endif
