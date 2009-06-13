@@ -1,0 +1,14 @@
+#!/bin/sh
+TESTS_PATH="../m68k-tests/"
+if [ "$1" = "" ]
+then
+    (cd $TESTS_PATH/ && ls gen-opcode-*.bin.bz2) | while read file
+    do
+        tmp=${file#gen-opcode-}
+        echo -n "${tmp%.bin.bz2} "
+    done
+    echo
+    exit 0
+fi
+
+bzcat "$TESTS_PATH/gen-opcode-$1.bin.bz2" | ./m68k-tester
