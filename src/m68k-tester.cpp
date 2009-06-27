@@ -662,7 +662,8 @@ enum {
 	OPCODE_NO_ERROR		= 0,
 	OPCODE_DELTA_D0		= 1 << 0,
 	OPCODE_DELTA_D1		= 1 << 1,
-	OPCODE_DELTA_FLAGS	= 1 << 2,
+	OPCODE_DELTA_D2		= 1 << 2,
+	OPCODE_DELTA_FLAGS	= 1 << 3,
 };
 
 static int check_test(m68k_testcase_t *tp)
@@ -672,6 +673,8 @@ static int check_test(m68k_testcase_t *tp)
 		error |= OPCODE_DELTA_D0;
 	if (tp->gen_state.dregs[1] != tp->output_state.dregs[1])
 		error |= OPCODE_DELTA_D1;
+	if (tp->gen_state.dregs[2] != tp->output_state.dregs[2])
+		error |= OPCODE_DELTA_D2;
 	if (tp->gen_state.ccr != tp->output_state.ccr)
 		error |= OPCODE_DELTA_FLAGS;
 	return error;
@@ -862,24 +865,28 @@ static void print_test_text(m68k_testcase_t *tp)
 {
 	int error = check_test(tp);
 
-	printf("%s opcode: %s %s %s %s\n",
+	printf("%s opcode: %s %s %s %s %s\n",
 		   error ? "broken" : "good",
 		   tp->inst->name,
 		   (error & OPCODE_DELTA_D0) ? "deltad0" : " ",
 		   (error & OPCODE_DELTA_D1) ? "deltad1" : " ",
+		   (error & OPCODE_DELTA_D2) ? "deltad2" : " ",
 		   (error & OPCODE_DELTA_FLAGS) ? "deltaflags" : " ");
-	printf("before d0=%08x    d1=%08x    CCR=%s (%d)\n",
+	printf("before d0=%08x    d1=%08x    d2=%08x    CCR=%s (%d)\n",
 		   tp->input_state.dregs[0],
 		   tp->input_state.dregs[1],
+		   tp->input_state.dregs[2],
 		   ccr2str(tp->input_state.ccr), tp->input_state.ccr);
-	printf("M68K   d0=%08x    d1=%08x    CCR=%s (%d) %s\n",
+	printf("M68K   d0=%08x    d1=%08x    d2=%08x    CCR=%s (%d) %s\n",
 		   tp->output_state.dregs[0],
 		   tp->output_state.dregs[1],
+		   tp->output_state.dregs[2],
 		   ccr2str(tp->output_state.ccr), tp->output_state.ccr,
 		   ((tp->input_state.ccr ^ tp->output_state.ccr) & (M68K_CCR_N | M68K_CCR_V)) ? "NV_changed" : "NV_same");
-	printf("GEN    d0=%08x %c  d1=%08x %c  CCR=%s %c (%d)\n",
+	printf("GEN    d0=%08x %c  d1=%08x %c  d2=%08x %c  CCR=%s %c (%d)\n",
 		   tp->gen_state.dregs[0], (error & OPCODE_DELTA_D0) ? '*' : ' ',
 		   tp->gen_state.dregs[1], (error & OPCODE_DELTA_D1) ? '*' : ' ',
+		   tp->gen_state.dregs[2], (error & OPCODE_DELTA_D2) ? '*' : ' ',
 		   ccr2str(tp->gen_state.ccr), (error & OPCODE_DELTA_FLAGS) ? '*' : ' ', tp->gen_state.ccr);
 	printf("\n");
 }
