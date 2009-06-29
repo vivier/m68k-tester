@@ -600,9 +600,9 @@ static int read_testcase_binary(FILE *fp, m68k_testcase_t *tp)
 			inst->words[0] = INS_opcode::extract(value);
 			for (int i = 0; i < len; i++) {
 				uint32 opcode;
-				error |= get_be32(fp, &value);
-				inst->words[2*i + 0] = value >> 16;
-				inst->words[2*i + 1] = value;
+				error |= get_be32(fp, &opcode);
+				inst->words[2*i + 1] = opcode >> 16;
+				inst->words[2*i + 2] = opcode;
 			}
 			len = INS_name_length::extract(value);
 			memset(name, 0, len + 1);
