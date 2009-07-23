@@ -77,6 +77,8 @@ extern void cpu_dump_state(CPUM68KState *env, FILE *f,
 }
 #endif
 
+unsigned long guest_base;
+
 static int m68k_memory_init(void)
 {
 	if (vm_init() < 0)
