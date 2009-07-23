@@ -1,14 +1,15 @@
 #!/bin/sh
 TESTS_PATH="../m68k-tests/"
+PREFIX="gen-opcode-"
 if [ "$1" = "" ]
 then
-    (cd $TESTS_PATH/ && ls gen-opcode-*.bin.bz2) | while read file
+    (cd $TESTS_PATH/ && ls ${PREFIX}*.bin.bz2) | while read file
     do
-        tmp=${file#gen-opcode-}
+        tmp=${file#${PREFIX}}
         echo -n "${tmp%.bin.bz2} "
     done
     echo
     exit 0
 fi
 
-bzcat "$TESTS_PATH/gen-opcode-$1.bin.bz2" | ./m68k-tester
+bzcat "$TESTS_PATH/${PREFIX}$1.bin.bz2" | ./m68k-tester
