@@ -1,0 +1,16 @@
+#!/bin/sh
+
+failing=""
+for op in $(./run_test)
+do
+	echo "Running ${op} testcase"
+	if ! ./run_test "${op}"
+	then
+		failing="$failing ${op}"
+	fi
+done
+if [ ! -z "$failing" ]
+then
+	echo "FAILING test cases: $failing"
+	exit 1
+fi
