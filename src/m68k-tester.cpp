@@ -1257,5 +1257,5 @@ int main(int argc, char *argv[])
 
 	stdout_on(&stdout_state);
 
-	return 0;
+	return n_errors_total ? 1 : 0;
 }
