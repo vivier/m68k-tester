@@ -1,15 +1,25 @@
 #!/bin/sh
-TESTS_PATH="../m68k-tests/"
-PREFIX="gen-opcode-"
+#TESTS_PATH="../m68k-tests/"
+TESTS_PATH="../../q800/"
+PREFIX="m68040-opcode-"
+SUFFIX=".bin.bz2"
+#SUFFIX=".bin"
 if [ "$1" = "" ]
 then
-    (cd $TESTS_PATH/ && ls ${PREFIX}*.bin.bz2) | while read file
+    (cd $TESTS_PATH/ && ls ${PREFIX}*${SUFFIX}) | while read file
     do
         tmp=${file#${PREFIX}}
-        echo -n "${tmp%.bin.bz2} "
+        echo -n "${tmp%${SUFFIX}} "
     done
     echo
     exit 0
 fi
 
-bzcat "$TESTS_PATH/${PREFIX}$1.bin.bz2" | ./m68k-tester
+case "${SUFFIX}"
+in
+    *.bz2) CAT="bzcat";;
+    *.gz)  CAT="zcat" ;;
+    *)     CAT="cat" ;;
+esac
+
+"${CAT}" "$TESTS_PATH/${PREFIX}$1${SUFFIX}" | ./m68k-tester --cpu 68040
