@@ -131,7 +131,10 @@ static void m68k_execute(CPUM68KState *cpu)
 
 m68k_cpu::m68k_cpu()
 {
-	m68k_memory_init();
+	if (m68k_memory_init() < 0) {
+		fprintf(stderr, "qemu: Cannot map init memory\n");
+		abort();
+	}
 	cpu_exec_init_all(0);
 	opaque = m68k_cpu_init();
 	assert(opaque != NULL);
