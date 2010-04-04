@@ -67,13 +67,10 @@ typedef struct float_status {
 #endif
 
 #if EMU_QEMU
+typedef uint32_t abi_ulong;
 extern "C" {
 #define NEED_CPU_H
 #include "cpu.h"
-extern void tb_flush(CPUM68KState*);
-extern void cpu_dump_state(CPUM68KState *env, FILE *f,
-						   int (*cpu_fprintf)(FILE *f, const char *fmt, ...),
-						   int flags);
 }
 #endif
 

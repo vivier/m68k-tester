@@ -129,6 +129,7 @@ ifeq ($(EMULATOR), QEMU)
 GLUE_SRCS = m68k-tester-qemu.cpp
 GLUE_INCS = softfloat.h qemu-types.h
 CPPFLAGS += -I$(EMULATOR_PATH)/target-m68k
+CPPFLAGS += -I$(EMULATOR_PATH)/m68k-linux-user
 CPPFLAGS += -DEMU_QEMU
 CPPFLAGS += -DVM_DEFAULT_ACCESSORS
 endif
@@ -169,7 +170,7 @@ endif
 
 ifeq ($(EMULATOR), QEMU)
 GLUE_LIBS	= libqemu.a
-GEN_LIBS	= $(GLUE_LIBS:%.a=$(EMULATOR_PATH)/m68k-linux-user/%.a)
+GEN_LIBS	= $(GLUE_LIBS:%.a=$(SRC_PATH)/obj/%.a)
 GEN_INCS	= $(GLUE_INCS:%.h=$(OBJ_DIR)/%.h)
 else
 ifneq ($(EMULATOR), dummy)
@@ -237,8 +238,15 @@ changelog.commit:
 m68k-tester: $(OBJ_DIR) $(OBJS) $(GEN_LIBS)
 	$(CXX) -o $@ $(OBJS) $(GEN_LIBS) $(LIBS)
 
+ifeq ($(EMULATOR), QEMU)
+QEMU_LIB_FILES = $(addprefix $(EMULATOR_PATH)/m68k-linux-user/, main.o syscall.o strace.o mmap.o signal.o thunk.o elfload.o linuxload.o uaccess.o gdbstub.o cpu-uname.o flatload.o ../libuser/envlist.o ../libuser/path.o ../libuser/tcg-runtime.o ../libuser/host-utils.o ../libuser/cutils.o ../libuser/cache-utils.o ../libdis-user/i386-dis.o ../libdis-user/m68k-dis.o exec.o translate-all.o cpu-exec.o translate.o tcg/tcg.o fpu/softfloat.o op_helper.o helper.o disas.o gdbstub-xml.o m68k-sim.o m68k-semi.o)
+
+$(GEN_LIBS): $(QEMU_LIB_FILES)
+	ar r $@ $^
+else
 $(GEN_LIBS):
 	@echo "Emulator static library is missing" && exit 1
+endif
 
 $(OBJ_DIR)/%.o: $(SRC_PATH)/src/%.cpp $(GEN_INCS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ -c $<
