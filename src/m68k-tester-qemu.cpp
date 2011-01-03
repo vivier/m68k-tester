@@ -71,6 +71,9 @@ typedef uint32_t abi_ulong;
 extern "C" {
 #define NEED_CPU_H
 #include "cpu.h"
+#ifndef CONFIG_EMULOP
+#error "You must configure your qemu using option '--enable-emulop'"
+#endif
 }
 #endif
 
