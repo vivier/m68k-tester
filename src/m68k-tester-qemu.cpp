@@ -74,6 +74,10 @@ extern "C" {
 #ifndef CONFIG_EMULOP
 #error "You must configure your qemu using option '--enable-emulop'"
 #endif
+void tb_flush(CPUState *env);
+typedef struct TCGContext TCGContext;
+extern TCGContext tcg_ctx;
+void tcg_prologue_init(TCGContext *s);
 }
 #endif
 
@@ -138,6 +142,9 @@ m68k_cpu::m68k_cpu()
 	cpu_exec_init_all(0);
 	opaque = m68k_cpu_init();
 	assert(opaque != NULL);
+#if defined(CONFIG_USE_GUEST_BASE)
+	tcg_prologue_init(&tcg_ctx);
+#endif
 }
 
 m68k_cpu::~m68k_cpu()
