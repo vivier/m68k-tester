@@ -59,6 +59,7 @@ typedef struct float_status {
     signed char floatx80_rounding_precision;
 #endif
 } float_status;
+typedef long double floatx80;
 
 #if defined(__x86_64__)
 #define TARGET_PHYS_ADDR_BITS 64
