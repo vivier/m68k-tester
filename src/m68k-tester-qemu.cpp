@@ -60,6 +60,13 @@ typedef struct float_status {
 #endif
 } float_status;
 typedef long double floatx80;
+typedef struct {
+#ifdef HOST_WORDS_BIGENDIAN
+    uint64_t high, low;
+#else
+    uint64_t low, high;
+#endif
+} float128;
 
 #if defined(__x86_64__)
 #define TARGET_PHYS_ADDR_BITS 64
@@ -140,7 +147,8 @@ m68k_cpu::m68k_cpu()
 		fprintf(stderr, "qemu: Cannot map init memory\n");
 		abort();
 	}
-	cpu_exec_init_all(0);
+        tcg_exec_init(0);
+	cpu_exec_init_all();
 	opaque = m68k_cpu_init();
 	assert(opaque != NULL);
 #if defined(CONFIG_USE_GUEST_BASE)

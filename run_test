@@ -1,5 +1,6 @@
 #!/bin/sh
 #TESTS_PATH="../m68k-tests/"
+#PREFIX="gen-opcode-"
 TESTS_PATH="../../q800/"
 PREFIX="m68040-opcode-"
 SUFFIX=".bin.bz2"
