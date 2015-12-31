@@ -29,9 +29,6 @@
 
 
 /* <config-host.h> glue */
-#if defined __LP64__
-#define HOST_LONG_BITS 64
-#endif
 #if defined __linux__
 #define HAVE_BYTESWAP_H 1
 #endif
@@ -51,22 +48,6 @@
 #endif
 typedef uint32 float32;
 typedef uint64 float64;
-typedef struct float_status {
-    signed char float_detect_tininess;
-    signed char float_rounding_mode;
-    signed char float_exception_flags;
-#ifdef FLOATX80
-    signed char floatx80_rounding_precision;
-#endif
-} float_status;
-typedef long double floatx80;
-typedef struct {
-#ifdef HOST_WORDS_BIGENDIAN
-    uint64_t high, low;
-#else
-    uint64_t low, high;
-#endif
-} float128;
 
 #if defined(__x86_64__)
 #define TARGET_PHYS_ADDR_BITS 64
@@ -78,11 +59,17 @@ typedef struct {
 typedef uint32_t abi_ulong;
 extern "C" {
 #define NEED_CPU_H
+#include <pthread.h>
+#define class qemu_class
+#define typename qemu_typename
+void page_dump(FILE *f);
+#include "config-target.h"
 #include "cpu.h"
 #ifndef CONFIG_EMULOP
 #error "You must configure your qemu using option '--enable-emulop'"
 #endif
-void tb_flush(CPUState *env);
+FILE *logfile;
+int loglevel;
 typedef struct TCGContext TCGContext;
 extern TCGContext tcg_ctx;
 void tcg_prologue_init(TCGContext *s);
@@ -105,26 +92,28 @@ static void m68k_memory_exit(void)
 	vm_release((void *)(uintptr)M68K_CODE_BASE, M68K_CODE_SIZE);
 }
 
-static CPUM68KState *m68k_cpu_init(void)
+static CPUState *m68k_cpu_init(void)
 {
 	char cpu_str[] = "m68000";
 	cpu_str[4] = CPUType + '0';
-	CPUM68KState *cpu = cpu_m68k_init(cpu_str);
+	CPUState *cpu = CPU(cpu_m68k_init(cpu_str));
 	if (cpu == NULL)
 		return NULL;
+	cpu_reset(cpu);
 
 	return cpu;
 }
 
-static void m68k_cpu_exit(CPUM68KState *cpu)
+static void m68k_cpu_exit(CPUState *cpu)
 {
-	cpu_m68k_close(cpu);
 }
 
-static void m68k_execute(CPUM68KState *cpu)
+static void m68k_execute(CPUM68KState *env)
 {
+	CPUState *cs = CPU(m68k_env_get_cpu(env));
+	int trapnr;
 	for (;;) {
-		int trapnr = cpu_m68k_exec(cpu);
+		trapnr = cpu_m68k_exec(cs);
 		switch (trapnr) {
 		case EXCP_EXEC_RETURN:
 			// special opcode, exit from m68k execution loop
@@ -132,14 +121,15 @@ static void m68k_execute(CPUM68KState *cpu)
 		default:
 			fprintf(stderr, "qemu: unhandled CPU exception 0x%x - aborting\n",
 					trapnr);
-			cpu_dump_state(cpu, stderr, fprintf, 0);
+			cpu_dump_state(cs, stderr, fprintf, 0);
 			abort();
 		}
 	}
 }
 
 
-#define M68K_STATE ((CPUM68KState *)opaque)
+#define M68K_STATE ((CPUState *)opaque)
+#define M68K_ENV ((CPUM68KState*)(M68K_STATE->env_ptr))
 
 m68k_cpu::m68k_cpu()
 {
@@ -147,13 +137,12 @@ m68k_cpu::m68k_cpu()
 		fprintf(stderr, "qemu: Cannot map init memory\n");
 		abort();
 	}
+
+	module_call_init(MODULE_INIT_QOM);
         tcg_exec_init(0);
-	cpu_exec_init_all();
 	opaque = m68k_cpu_init();
 	assert(opaque != NULL);
-#if defined(CONFIG_USE_GUEST_BASE)
 	tcg_prologue_init(&tcg_ctx);
-#endif
 }
 
 m68k_cpu::~m68k_cpu()
@@ -164,42 +153,42 @@ m68k_cpu::~m68k_cpu()
 
 uint32 m68k_cpu::get_pc() const
 {
-	return M68K_STATE->pc;
+	return M68K_ENV->pc;
 }
 
 void m68k_cpu::set_pc(uint32 pc)
 {
-	M68K_STATE->pc = pc;
+	M68K_ENV->pc = pc;
 }
 
 uint32 m68k_cpu::get_ccr() const
 {
-	return M68K_STATE->sr & M68K_CCR_BITS;
+	return cpu_m68k_get_ccr(M68K_ENV);
 }
 
 void m68k_cpu::set_ccr(uint32 ccr)
 {
-	M68K_STATE->sr = (M68K_STATE->sr & ~M68K_CCR_BITS) | (ccr & M68K_CCR_BITS);
+	cpu_m68k_set_ccr(M68K_ENV, ccr);
 }
 
 uint32 m68k_cpu::get_dreg(int r) const
 {
-	return M68K_STATE->dregs[r];
+	return M68K_ENV->dregs[r];
 }
 
 void m68k_cpu::set_dreg(int r, uint32 v)
 {
-	M68K_STATE->dregs[r] = v;
+	M68K_ENV->dregs[r] = v;
 }
 
 uint32 m68k_cpu::get_areg(int r) const
 {
-	return M68K_STATE->aregs[r];
+	return M68K_ENV->aregs[r];
 }
 
 void m68k_cpu::set_areg(int r, uint32 v)
 {
-	M68K_STATE->aregs[r] = v;
+	M68K_ENV->aregs[r] = v;
 }
 
 void m68k_cpu::reset(void)
@@ -208,37 +197,20 @@ void m68k_cpu::reset(void)
 
 void m68k_cpu::reset_jit(void)
 {
-	tb_flush(M68K_STATE);
+	tb_flush((CPUState*)M68K_STATE);
 }
 
 void m68k_cpu::execute(uint32 pc)
 {
 	D(bug("* execute code at %08x\n", pc));
 	set_pc(pc);
-	m68k_execute(M68K_STATE);
+	m68k_execute(M68K_ENV);
 }
 
 extern "C" {
 
 int singlestep;
 unsigned long last_brk;
-
-void pstrcpy(char *buf, int buf_size, const char *str)
-{
-    int c;
-    char *q = buf;
-
-    if (buf_size <= 0)
-        return;
-
-    for(;;) {
-        c = *str++;
-        if (c == 0 || q >= buf + buf_size - 1)
-            break;
-        *q++ = c;
-    }
-    *q = '\0';
-}
 
 void qemu_free(void *ptr)
 {
@@ -291,3 +263,4 @@ void gdb_register_coprocessor(CPUState * env,
 {
 }
 }
+
