@@ -666,6 +666,7 @@ enum {
 	OPCODE_DELTA_FLAGS	= 1 << 3,
 };
 
+static int ignore_mask = 0;
 static int check_test(m68k_testcase_t *tp)
 {
 	int error = OPCODE_NO_ERROR;
@@ -675,7 +676,8 @@ static int check_test(m68k_testcase_t *tp)
 		error |= OPCODE_DELTA_D1;
 	if (tp->gen_state.dregs[2] != tp->output_state.dregs[2])
 		error |= OPCODE_DELTA_D2;
-	if (tp->gen_state.ccr != tp->output_state.ccr)
+	if ((tp->gen_state.ccr & ~ignore_mask) != 
+	     (tp->output_state.ccr & ~ignore_mask))
 		error |= OPCODE_DELTA_FLAGS;
 	return error;
 }
@@ -1099,6 +1101,40 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
+		else if (strcmp(arg, "--ignore-flags") == 0) {
+			if (++i < argc) {
+				arg = argv[i];
+				while (*arg != 0) {
+					switch (*arg) {
+					case 'X':
+					case 'x':
+						ignore_mask |= 0x10;
+						break;
+					case 'N':
+					case 'n':
+						ignore_mask |= 0x08;
+						break;
+					case 'Z':
+					case 'z':
+						ignore_mask |= 0x04;
+						break;
+					case 'V':
+					case 'v':
+						ignore_mask |= 0x02;
+						break;
+					case 'C':
+					case 'c':
+						ignore_mask |= 0x01;
+						break;
+					case ',':
+						break;
+					default:
+						goto help;
+					}
+					arg++;
+				}
+			}
+		}
 		else if (strcmp(arg, "--cpu") == 0) {
 			if (++i < argc) {
 				arg = argv[i];
@@ -1133,6 +1169,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (cmd == CMD_HELP) {
+help:
 		printf("Usage: %s [<command>] [<option>]*\n", argv[0]);
 		printf("\n");
 		printf("Commands:\n");
@@ -1149,6 +1186,7 @@ int main(int argc, char *argv[])
 		printf("  --cpu CPU         set CPU mode (680x0)\n");
 		printf("  --fpu FPU         set FPU mode (68881, 68882, 68040)\n");
 		printf("  --format FORMAT   set output FORMAT mode (text, binary)\n");
+		printf("  --ignore-flags    set comma separated list of flags to ignore (X,Z,N,V,C)\n");
 		return 0;
 	}
 
